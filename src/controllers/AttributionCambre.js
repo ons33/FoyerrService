@@ -15,7 +15,6 @@ export const assignerChambres = async (req, res) => {
   try {
     // Extract the access token from the request headers
     const accessToken = req.headers.authorization.split(' ')[1];
-console.log(accessToken);
     // Récupérer les demandes en attente
     const demandesEnAttente = await Demande.find({ statutDemande: 'En attente' });
     
@@ -60,24 +59,10 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
     }
 
     // Récupérer les détails de l'utilisateur à partir de l'identifiant de l'utilisateur associé à la demande
-    const getUserDetails = async (userId) => {
-      try {
-        const response = await axios.get(`http://localhost:8080/auth/admin/realms/espritookKeycloak/users/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`, // Pass the access token in the request headers
-          },
-        });
-        const userData = response.data;
-        console.log("hedha luser",userData);
-        return userData;
-      } catch (error) {
-        console.error("Erreur lors de la récupération des détails de l'utilisateur :", error);
-        throw error;
-      }
-    };
+  
     
     // Utilisation de la fonction pour récupérer les détails de l'utilisateur
-    const user = await getUserDetails(demande.utilisateur);
+    //const user = await getUserDetails(demande.utilisateur);
     
     // Récupérer les détails de la chambre attribuée à la demande
     const attributionChambre = await AttributionChambre.findOne({ demande: demandeId }).populate('chambre');
@@ -97,7 +82,7 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
         <a href="https://res.cloudinary.com/dpk9mpjsd/image/upload/v1715799077/documents/photo-1715799065900.png" alt="Logo"/>
         </div>
         <div style="padding: 20px;">
-          <h2 style="color: #333;">Bonjour ${user.firstName} ${user.lastName},</h2>
+          <h2 style="color: #333;">Bonjour ,</h2>
           <p style="color: #555;">Votre demande d'hébergement a été approuvée merci de suivre la procédure de confirmation :</p>
           <p style="color: #555;">Dossier numérique en ligne via le lien suivant <a href="http://localhost:3001/mesdocuments" style="color: #405f6b;"> Mes Documents</a></p>
           <ul style="color: #555; padding-left: 20px;">
@@ -147,7 +132,7 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
     // Envoyer l'e-mail
     await transporter.sendMail({
       from: 'ons.benamorr@gmail.com',
-      to: user.email, // Adresse e-mail de l'étudiant
+      to: demande.email, // Adresse e-mail de l'étudiant
       subject: 'Votre demande d\'hébergement a été approuvée',
       html: emailBody,
     });

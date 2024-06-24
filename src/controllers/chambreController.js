@@ -6,6 +6,8 @@ import Demande from '../models/Demande.js';
 import axios from 'axios'; // Ensure axios is available in your project
 
 
+
+
 export const getUtilisateursByChambre = async (req, res) => {
   try {
     const { chambreId } = req.params;
@@ -21,36 +23,20 @@ export const getUtilisateursByChambre = async (req, res) => {
       .populate({
         path: 'demande',
         model: 'Demande',
-        select: 'utilisateur'
+        select: 'utilisateur email'
       });
 
-    const userIds = attributions.map(attr => attr.demande.utilisateur);
+    // Extract emails from attributions
+    const emails = attributions.map(attr => attr.demande.email);
 
-    // Fetch user details from Keycloak
-    const userDetails = await Promise.all(userIds.map(async (userId) => {
-      const url = `http://localhost:8080/auth/admin/realms/espritookKeycloak/users/${userId}`;
-      try {
-        const response = await axios.get(url, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        });
-        return response.data; // Return the user details
-      } catch (error) {
-        console.error("Error fetching user details from Keycloak:", error);
-        return null; // Handle individual errors, e.g., user not found
-      }
-    }));
+    console.log("Emails from the demande collection: ", emails);
 
-    console.log("User details from Keycloak: ", userDetails);
-
-    res.status(200).json(userDetails);
+    res.status(200).json(emails);
   } catch (error) {
     console.error("Erreur lors de la récupération des identifiants utilisateur de la chambre:", error);
     res.status(500).send("Erreur lors de la récupération des identifiants utilisateur pour la chambre spécifiée.");
   }
 };
-
 
 
 
@@ -200,23 +186,5 @@ export const getChambresDisponibles = async (req, res) => {
     res.status(500).send("Erreur lors de la récupération des chambres.");
   }
 };
-// Nouvelle fonction pour obtenir les chambres disponibles
-export const getChambresDispo = async (req, res) => {
-  try {
-    const chambresDisponibles = await Chambre.find({ statut: 'Disponible' }).populate('foyer');
-    res.status(200).json(chambresDisponibles);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des chambres disponibles", error });
-  }
-};
 
-// Nouvelle fonction pour obtenir les chambres non disponibles
-export const getChambresNonDispo = async (req, res) => {
-  try {
-    const chambresNonDisponibles = await Chambre.find({ statut: 'Non disponible' }).populate('foyer');
-    res.status(200).json(chambresNonDisponibles);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des chambres non disponibles", error });
-  }
-};
 

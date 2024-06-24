@@ -246,6 +246,7 @@ export const checkAndNotifyIncompleteDemandes = async () => {
 export const finalizeDemande = async (accessToken) => {
   console.log("Vérification des demandes à finaliser...");
   console.log("accessToken", accessToken);
+
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -265,11 +266,14 @@ export const finalizeDemande = async (accessToken) => {
       await Promise.all(
         demandes.map(async (demande) => {
           let hasAllDocuments = demande.typeDemande === 'Hebergement';
+          let userRenouvEmail = null;
 
           if (demande.typeDemande === 'Renouvellement' && demande.demandeOriginale) {
             const demandeOriginale = await Demande.findById(demande.demandeOriginale);
             if (demandeOriginale) {
               hasAllDocuments = ['cin', 'photo', 'attestationInscription', 'certificatMedical'].every(doc => !!demandeOriginale[doc]);
+              userRenouvEmail = demandeOriginale.email;
+              console.log("Renouvellement email: ", userRenouvEmail);
             }
           } else {
             hasAllDocuments = ['cin', 'photo', 'attestationInscription', 'certificatMedical'].every(doc => !!demande[doc]);
@@ -280,40 +284,41 @@ export const finalizeDemande = async (accessToken) => {
             return;
           }
 
-          const userId = demande.utilisateur;
-
-          const getUserDetails = async (userId) => {
-            try {
-              const response = await axios.get(`http://localhost:8080/auth/admin/realms/espritookKeycloak/users/${userId}`, {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                },
-              });
-              return response.data;
-            } catch (error) {
-              console.error("Erreur lors de la récupération des détails de l'utilisateur :", error);
-              throw error;
-            }
-          };
-
-          const user = await getUserDetails(userId);
+          const userEmail = demande.email;
+          console.log("User email: ", userEmail);
 
           const emailBody = `
             <html>
             <body>
-              <p>Bonjour ${user.firstName} ${user.lastName},</p>
+              <p>Bonjour,</p>
               <p>Félicitations, votre demande d'hébergement a été finalisée avec succès !</p>
               <p>Merci pour votre patience.</p>
             </body>
             </html>
           `;
 
-          await transporter.sendMail({
-            from: 'ons.benamorr@gmail.com',
-            to: user.email,
-            subject: 'Demande d\'hébergement finalisée',
-            html: emailBody,
-          });
+          if (userEmail) {
+            await transporter.sendMail({
+              from: 'ons.benamorr@gmail.com',
+              to: userEmail,
+              subject: 'Demande d\'hébergement finalisée',
+              html: emailBody,
+            });
+          } else {
+            console.log(`No email found for user in demande ${demande._id}`);
+          }
+
+          if (userRenouvEmail) {
+            console.log("Sending email to renewal user: ", userRenouvEmail);
+            await transporter.sendMail({
+              from: 'ons.benamorr@gmail.com',
+              to: userRenouvEmail,
+              subject: 'Renouvellement de demande d\'hébergement finalisée',
+              html: emailBody,
+            });
+          } else {
+            console.log(`No renewal email found for demande ${demande._id}`);
+          }
 
           demande.statutDemande = 'Finalisée';
           await demande.save();
@@ -327,6 +332,7 @@ export const finalizeDemande = async (accessToken) => {
     console.error("Erreur lors de la vérification et de la finalisation des demandes:", error);
   }
 };
+
 
 export const deleteDemande = async (req, res) => {
   try {
