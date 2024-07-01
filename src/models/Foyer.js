@@ -8,7 +8,6 @@ const foyerSchema = new Schema({
   dureeMois: { type: Number, required: true },
   premiereTranche: { type: Number, required: true },
   capacite: { type: Number },
-
 });
 
 export default mongoose.model('Foyer', foyerSchema);

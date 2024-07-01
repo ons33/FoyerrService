@@ -1,29 +1,30 @@
-import Demande from '../models/Demande.js';  // Remplacer DemandeHebergement par Demande
-import moment from 'moment'; // Pour la gestion des dates
+import Demande from '../models/Demande.js';
 import schedule from 'node-schedule';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import nodemailer from 'nodemailer';
-import AttributionChambre from '../models/AttributionChambre.js';  // Remplacer DemandeHebergement par Demande
-
+import AttributionChambre from '../models/AttributionChambre.js';
+// createDemande
 export const createDemande = async (req, res) => {
   try {
-    const { utilisateur,email, foyer, typeDemande } = req.body;
-    console.log("body", req.body);
+    const { utilisateur, email, foyer, typeDemande } = req.body;
     const currentYear = moment().year();
-    console.log(`Recherche de demande pour l'utilisateur: ${utilisateur}, type: ${typeDemande}, entre ${new Date(`${currentYear}-01-01`)} et ${new Date(`${currentYear + 1}-01-01`)}`);
- 
     // Vérifier si l'utilisateur a déjà une demande pour l'année universitaire en cours
     const existingDemande = await Demande.findOne({
       utilisateur,
       typeDemande,
-      dateDemande: { $gte: new Date(`${currentYear}-01-01`), $lt: new Date(`${currentYear + 1}-01-01`) }
+      dateDemande: {
+        $gte: new Date(`${currentYear}-01-01`),
+        $lt: new Date(`${currentYear + 1}-01-01`),
+      },
     });
-    console.log(`Demande existante: ${existingDemande}`);
 
     if (existingDemande) {
-      return res.status(400).json({ message: "Vous avez déjà une demande pour cette année universitaire." });
-    }updateStatutDemande
+      return res.status(400).json({
+        message: "Vous avez déjà une demande pour cette année universitaire.",
+      });
+    }
+    updateStatutDemande;
 
     const nouvelleDemande = new Demande({
       ...req.body,
@@ -34,18 +35,23 @@ export const createDemande = async (req, res) => {
     await nouvelleDemande.save();
     res.status(201).json(nouvelleDemande);
   } catch (error) {
-    res.status(400).json({ message: "Erreur lors de la création de la demande", error });
+    res
+      .status(400)
+      .json({ message: "Erreur lors de la création de la demande", error });
   }
 };
-
+// createDemande
 export const getAllDemandes = async (req, res) => {
   try {
     const demandes = await Demande.find().populate('foyer');
     res.status(200).json(demandes);
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des demandes", error });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la récupération des demandes", error });
   }
 };
+// get Demande By Id
 export const getDemandeById = async (req, res) => {
   try {
     const demande = await Demande.findById(req.params.id).populate('foyer');
@@ -54,54 +60,65 @@ export const getDemandeById = async (req, res) => {
     }
     res.status(200).json(demande);
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération de la demande", error });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la récupération de la demande", error });
   }
 };
+// check Existing Demand
 export const checkExistingDemand = async (req, res) => {
   const { utilisateur } = req.params;
-  console.log("req.params", req.params );
   const currentYear = moment().year();
-
   try {
-      const existingDemande = await Demande.findOne({
-          utilisateur,
-          dateDemande: {
-              $gte: new Date(`${currentYear}-01-01`),
-              $lt: new Date(`${currentYear + 1}-01-01`)
-          }
-      });
+    const existingDemande = await Demande.findOne({
+      utilisateur,
+      dateDemande: {
+        $gte: new Date(`${currentYear}-01-01`),
+        $lt: new Date(`${currentYear + 1}-01-01`),
+      },
+    });
 
-      if (existingDemande) {
-          return res.status(200).json({ exist: true, message: "Demande already exists for this academic year." });
-      } else {
-          return res.status(200).json({ exist: false, message: "No existing demande found for this academic year." });
-      }
+    if (existingDemande) {
+      return res.status(200).json({
+        exist: true,
+        message: "Demande already exists for this academic year.",
+      });
+    } else {
+      return res.status(200).json({
+        exist: false,
+        message: "No existing demande found for this academic year.",
+      });
+    }
   } catch (error) {
-      console.error('Failed to check existing demands:', error);
-      res.status(500).json({ message: "Server error while checking for existing demands." });
+    console.error('Failed to check existing demands:', error);
+    res
+      .status(500)
+      .json({ message: "Server error while checking for existing demands." });
   }
 };
-
+// get DemandId By UserId
 export const getDemandIdByUserId = async (req, res) => {
-  const { utilisateur } = req.params; // Get the user ID from the URL parameter
+  const { utilisateur } = req.params;
 
   try {
-      const existingDemande = await Demande.findOne({ utilisateur });
+    const existingDemande = await Demande.findOne({ utilisateur });
 
-      if (existingDemande) {
-          return res.status(200).json({
-              demandId: existingDemande._id,
-              cin: existingDemande.cin,
-              photo: existingDemande.photo,
-              attestationInscription: existingDemande.attestationInscription,
-              certificatMedical: existingDemande.certificatMedical
-          });
-      } else {
-          return res.status(404).json({ message: "Vous n'avez pas encore fait une demande" });
-      }
+    if (existingDemande) {
+      return res.status(200).json({
+        demandId: existingDemande._id,
+        cin: existingDemande.cin,
+        photo: existingDemande.photo,
+        attestationInscription: existingDemande.attestationInscription,
+        certificatMedical: existingDemande.certificatMedical,
+      });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Vous n'avez pas encore fait une demande" });
+    }
   } catch (error) {
-      console.error('Error retrieving demand by user ID:', error);
-      res.status(500).json({ message: "Server error while retrieving demand." });
+    console.error('Error retrieving demand by user ID:', error);
+    res.status(500).json({ message: "Server error while retrieving demand." });
   }
 };
 
@@ -117,8 +134,8 @@ const verifierDocumentsDemandes = async () => {
         { cin: { $exists: false } },
         { photo: { $exists: false } },
         { attestationInscription: { $exists: false } },
-        { certificatMedical: { $exists: false } }
-      ]
+        { certificatMedical: { $exists: false } },
+      ],
     });
 
     if (demandes.length > 0) {
@@ -128,13 +145,17 @@ const verifierDocumentsDemandes = async () => {
           demande.statutDemande = 'Rejetée';
           await demande.save();
 
-          const attribution = await AttributionChambre.findOne({ demande: demande._id }).populate('chambre');
+          const attribution = await AttributionChambre.findOne({
+            demande: demande._id,
+          }).populate('chambre');
           if (attribution && attribution.chambre) {
             const chambre = attribution.chambre;
             chambre.placesDispo += 1;
             chambre.statut = 'Disponible';
             await chambre.save();
-            console.log(`Chambre ${chambre.num} updated: placesDispo = ${chambre.placesDispo}, statut = Disponible`);
+            console.log(
+              `Chambre ${chambre.num} updated: placesDispo = ${chambre.placesDispo}, statut = Disponible`
+            );
           }
         })
       );
@@ -146,10 +167,8 @@ const verifierDocumentsDemandes = async () => {
     console.error("Erreur lors de la vérification des demandes:", error);
   }
 };
-// Planifier la tâche pour s'exécuter chaque jour à minuit
+//Schedule the job to run every day at midnight
 //schedule.scheduleJob('* * * * *', verifierDocumentsDemandes);
-
-
 
 // Fonction pour vérifier les demandes et envoyer un email si elles sont incomplètes après 5 jours
 export const checkAndNotifyIncompleteDemandes = async () => {
@@ -174,8 +193,8 @@ export const checkAndNotifyIncompleteDemandes = async () => {
         { cin: { $exists: false } },
         { photo: { $exists: false } },
         { attestationInscription: { $exists: false } },
-        { certificatMedical: { $exists: false } }
-      ]
+        { certificatMedical: { $exists: false } },
+      ],
     });
 
     if (demandes.length > 0) {
@@ -231,8 +250,13 @@ export const checkAndNotifyIncompleteDemandes = async () => {
       emailMessages.push("Aucune demande nécessitant une notification.");
     }
   } catch (error) {
-    console.error("Erreur lors de la vérification et de la notification des demandes:", error);
-    emailMessages.push("Erreur lors de la vérification et de la notification des demandes.");
+    console.error(
+      "Erreur lors de la vérification et de la notification des demandes:",
+      error
+    );
+    emailMessages.push(
+      "Erreur lors de la vérification et de la notification des demandes."
+    );
   }
 
   return emailMessages;
@@ -241,12 +265,8 @@ export const checkAndNotifyIncompleteDemandes = async () => {
 // Schedule the job to run every day at midnight
 //schedule.scheduleJob('* * * * *', checkAndNotifyIncompleteDemandes);
 
-
 // Fonction pour vérifier les demandes à finaliser
 export const finalizeDemande = async (accessToken) => {
-  console.log("Vérification des demandes à finaliser...");
-  console.log("accessToken", accessToken);
-
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -262,30 +282,41 @@ export const finalizeDemande = async (accessToken) => {
     });
 
     if (demandes.length > 0) {
-      console.log(`Finalisation de ${demandes.length} demandes...`);
       await Promise.all(
         demandes.map(async (demande) => {
           let hasAllDocuments = demande.typeDemande === 'Hebergement';
           let userRenouvEmail = null;
 
-          if (demande.typeDemande === 'Renouvellement' && demande.demandeOriginale) {
-            const demandeOriginale = await Demande.findById(demande.demandeOriginale);
+          if (
+            demande.typeDemande === 'Renouvellement' &&
+            demande.demandeOriginale
+          ) {
+            const demandeOriginale = await Demande.findById(
+              demande.demandeOriginale
+            );
             if (demandeOriginale) {
-              hasAllDocuments = ['cin', 'photo', 'attestationInscription', 'certificatMedical'].every(doc => !!demandeOriginale[doc]);
+              hasAllDocuments = [
+                'cin',
+                'photo',
+                'attestationInscription',
+                'certificatMedical',
+              ].every((doc) => !!demandeOriginale[doc]);
               userRenouvEmail = demandeOriginale.email;
-              console.log("Renouvellement email: ", userRenouvEmail);
             }
           } else {
-            hasAllDocuments = ['cin', 'photo', 'attestationInscription', 'certificatMedical'].every(doc => !!demande[doc]);
+            hasAllDocuments = [
+              'cin',
+              'photo',
+              'attestationInscription',
+              'certificatMedical',
+            ].every((doc) => !!demande[doc]);
           }
 
           if (!hasAllDocuments) {
-            console.log(`La demande ${demande._id} n'a pas tous les documents nécessaires.`);
             return;
           }
 
           const userEmail = demande.email;
-          console.log("User email: ", userEmail);
 
           const emailBody = `
             <html>
@@ -329,11 +360,13 @@ export const finalizeDemande = async (accessToken) => {
       console.log("Aucune demande à finaliser.");
     }
   } catch (error) {
-    console.error("Erreur lors de la vérification et de la finalisation des demandes:", error);
+    console.error(
+      "Erreur lors de la vérification et de la finalisation des demandes:",
+      error
+    );
   }
 };
-
-
+//delete Demande
 export const deleteDemande = async (req, res) => {
   try {
     const deletedDemande = await Demande.findByIdAndDelete(req.params.id);
@@ -342,76 +375,96 @@ export const deleteDemande = async (req, res) => {
     }
     res.status(200).json({ message: "Demande supprimée" });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression de la demande", error });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression de la demande", error });
   }
 };
+//get All Demandes Hebergement
 export const getAllDemandesHebergement = async (req, res) => {
   try {
-    const demandes = await Demande.find({ typeDemande: 'Hébergement' }).populate({
+    const demandes = await Demande.find({
+      typeDemande: 'Hébergement',
+    }).populate({
       path: 'foyer',
-      select: 'typeFoyer'  // Assurez-vous que ce champ existe dans le modèle Foyer
+      select: 'typeFoyer',
     });
 
     res.status(200).json(demandes);
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des demandes d'hébergement", error });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des demandes d'hébergement",
+      error,
+    });
   }
 };
+// get All Demandes By Type
 export const getAllDemandesByType = async (req, res) => {
   try {
-    const { typeDemande } = req.query; 
-    console.log(typeDemande, "gg", req.query); // Obtenir le type de demande de la requête, ex. ?typeDemande=Hébergement
+    const { typeDemande } = req.query;
     const demandes = await Demande.find({ typeDemande }).populate('foyer');
 
     if (demandes.length === 0) {
-      return res.status(404).json({ message: "Aucune demande trouvée pour le type spécifié" });
+      return res
+        .status(404)
+        .json({ message: "Aucune demande trouvée pour le type spécifié" });
     }
 
     // Include document URLs in the response
-    const response = demandes.map(demande => ({
+    const response = demandes.map((demande) => ({
       ...demande.toObject(),
       cinUrl: demande.cin,
       photoUrl: demande.photo,
       attestationUrl: demande.attestationInscription,
-      certificatUrl: demande.certificatMedical
+      certificatUrl: demande.certificatMedical,
     }));
 
     res.status(200).json(response);
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la récupération des demandes par type", error });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des demandes par type",
+      error,
+    });
   }
 };
+// update Statut Demande
 export const updateStatutDemande = async (req, res) => {
-    try {
-      const { id } = req.params; // ID of the demand to update
-      const { statutDemande } = req.body; // New status to set
-  
-      // Update the demand and return the updated document
-      const updatedDemande = await Demande.findByIdAndUpdate(
-        id,
-        { statutDemande },
-        { new: true } // This option makes sure that the updated document is returned
-      );
-  
-      if (!updatedDemande) {
-        return res.status(404).json({ message: "Demande non trouvée" });
-      }
-  
-      res.status(200).json(updatedDemande);
-    } catch (error) {
-      res.status(500).json({ message: "Erreur lors de la mise à jour du statut de la demande", error });
-    }
-  };
+  try {
+    const { id } = req.params; // ID of the demand to update
+    const { statutDemande } = req.body; // New status to set
 
+    const updatedDemande = await Demande.findByIdAndUpdate(
+      id,
+      { statutDemande },
+      { new: true } // This option makes sure that the updated document is returned
+    );
+
+    if (!updatedDemande) {
+      return res.status(404).json({ message: "Demande non trouvée" });
+    }
+
+    res.status(200).json(updatedDemande);
+  } catch (error) {
+    res.status(500).json({
+      message: "Erreur lors de la mise à jour du statut de la demande",
+      error,
+    });
+  }
+};
+// update Demande
 export const updateDemande = async (req, res) => {
   try {
-    const demande = await Demande.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const demande = await Demande.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
     if (!demande) {
       return res.status(404).json({ message: "Demande non trouvée" });
     }
     res.status(200).json(demande);
   } catch (error) {
-    res.status(400).json({ message: "Erreur lors de la mise à jour de la demande", error });
+    res
+      .status(400)
+      .json({ message: "Erreur lors de la mise à jour de la demande", error });
   }
 };
 //renouvellement
@@ -419,10 +472,16 @@ export const createRenouvellementDemande = async (req, res) => {
   try {
     const { utilisateur, foyer } = req.body;
 
-    const existingDemande = await Demande.findOne({ utilisateur, statutDemande: 'Approuvée' });
+    const existingDemande = await Demande.findOne({
+      utilisateur,
+      statutDemande: 'Approuvée',
+    });
 
     if (!existingDemande) {
-      return res.status(404).json({ message: "Vous n'avez pas de demande précédente pour le renouvellement." });
+      return res.status(404).json({
+        message:
+          "Vous n'avez pas de demande précédente pour le renouvellement.",
+      });
     }
 
     const nouvelleDemande = new Demande({
@@ -431,13 +490,15 @@ export const createRenouvellementDemande = async (req, res) => {
       typeDemande: 'Renouvellement',
       statutDemande: 'En attente',
       dateDemande: new Date(),
-      demandeOriginale: existingDemande._id
+      demandeOriginale: existingDemande._id,
     });
 
     await nouvelleDemande.save();
     res.status(201).json(nouvelleDemande);
   } catch (error) {
-    res.status(400).json({ message: "Erreur lors de la création de la demande de renouvellement", error });
+    res.status(400).json({
+      message: "Erreur lors de la création de la demande de renouvellement",
+      error,
+    });
   }
 };
-  

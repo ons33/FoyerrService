@@ -1,7 +1,12 @@
 import express from 'express';
 import {
-  createChambre, getAllChambres, getChambreById, updateChambre, deleteChambre,
-  getChambresDisponibles, getUtilisateursByChambre
+  createChambre,
+  getAllChambres,
+  getChambreById,
+  updateChambre,
+  deleteChambre,
+  getChambresDisponibles,
+  getUtilisateursByChambre,
 } from '../controllers/chambreController.js';
 import { assignerChambres } from '../controllers/AttributionCambre.js';
 

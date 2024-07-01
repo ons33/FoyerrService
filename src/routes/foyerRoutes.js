@@ -1,5 +1,12 @@
 import express from 'express';
-import { createFoyer, getAllFoyers, getFoyerById, updateFoyer, deleteFoyer ,getChambresByFoyerId} from '../controllers/foyerController.js';
+import {
+  createFoyer,
+  getAllFoyers,
+  getFoyerById,
+  updateFoyer,
+  deleteFoyer,
+  getChambresByFoyerId,
+} from '../controllers/foyerController.js';
 
 const router = express.Router();
 

@@ -1,50 +1,60 @@
-// controllers/AttributionChambre.js
 import AttributionChambre from '../models/AttributionChambre.js';
 import Chambre from '../models/Chambre.js';
 import Demande from '../models//Demande.js';
-import mongoose from 'mongoose'; // Import mongoose
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 const ObjectId = mongoose.Types.ObjectId;
 import axios from 'axios';
 import nodemailer from 'nodemailer';
 
-//
-
-
+//assigner Chambres to students
 export const assignerChambres = async (req, res) => {
   try {
     // Extract the access token from the request headers
     const accessToken = req.headers.authorization.split(' ')[1];
     // Récupérer les demandes en attente
-    const demandesEnAttente = await Demande.find({ statutDemande: 'En attente' });
-    
+    const demandesEnAttente = await Demande.find({
+      statutDemande: 'En attente',
+    });
+
     for (const demande of demandesEnAttente) {
       const chambresDisponibles = await getChambresDisponibles(demande.foyer);
 
       // Logique d'attribution de chambres
       if (chambresDisponibles.length > 0) {
         const chambreAttribuee = chambresDisponibles[0]; // Choisissez une chambre disponible
-        await new AttributionChambre({ chambre: chambreAttribuee._id, demande: demande._id }).save();
+        await new AttributionChambre({
+          chambre: chambreAttribuee._id,
+          demande: demande._id,
+        }).save();
 
         // Mettre à jour le statut de la demande
-        await Demande.findByIdAndUpdate(demande._id, { statutDemande: 'Approuvée' });
-      // Mettre à jour la chambre attribuée
-      await Chambre.findByIdAndUpdate(chambreAttribuee._id, {
-        $inc: { placesDispo: -1 }, // Décrémenter le nombre de places disponibles
-        $set: { statut: chambreAttribuee.placesDispo === 1 ? 'Non disponible' : 'Disponible' } // Mettre à jour le statut
-      });
+        await Demande.findByIdAndUpdate(demande._id, {
+          statutDemande: 'Approuvée',
+        });
+        // Mettre à jour la chambre attribuée
+        await Chambre.findByIdAndUpdate(chambreAttribuee._id, {
+          $inc: { placesDispo: -1 }, // Décrémenter le nombre de places disponibles
+          $set: {
+            statut:
+              chambreAttribuee.placesDispo === 1
+                ? 'Non disponible'
+                : 'Disponible',
+          }, // Mettre à jour le statut
+        });
 
-     await sendEmailToStudent(demande._id, accessToken); // Passer l'identifiant de la demande et l'access token à la fonction d'envoi d'e-mails
-
-    } else {
-      console.log("Aucune chambre disponible pour cette demande:", demande);
-    }
+        await sendEmailToStudent(demande._id, accessToken); // Passer l'identifiant de la demande et l'access token à la fonction d'envoi d'e-mails
+      } else {
+        console.log("Aucune chambre disponible pour cette demande:", demande);
+      }
     }
 
     res.status(200).json({ message: 'Attribution des chambres terminée' });
   } catch (error) {
     console.error("Erreur lors de l'attribution des chambres :", error);
-    res.status(500).json({ message: 'Erreur lors de l\'attribution des chambres' });
+    res
+      .status(500)
+      .json({ message: 'Erreur lors de l\'attribution des chambres' });
   }
 };
 
@@ -57,23 +67,16 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
       console.log("Demande d'hébergement introuvable");
       return;
     }
-
-    // Récupérer les détails de l'utilisateur à partir de l'identifiant de l'utilisateur associé à la demande
-  
-    
-    // Utilisation de la fonction pour récupérer les détails de l'utilisateur
-    //const user = await getUserDetails(demande.utilisateur);
-    
     // Récupérer les détails de la chambre attribuée à la demande
-    const attributionChambre = await AttributionChambre.findOne({ demande: demandeId }).populate('chambre');
+    const attributionChambre = await AttributionChambre.findOne({
+      demande: demandeId,
+    }).populate('chambre');
     if (!attributionChambre) {
       console.log("Aucune chambre attribuée à cette demande");
       return;
     }
-
     // Créer le corps de l'e-mail
-  
-  const emailBody = `
+    const emailBody = `
   <html>
   <body>
     <div style="font-family: Arial, sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
@@ -115,9 +118,6 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
   </body>
   </html>
 `;
-
-
-
     // Configurer le transporteur SMTP pour l'envoi d'e-mails (utilisez vos propres informations SMTP)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -128,21 +128,22 @@ export const sendEmailToStudent = async (demandeId, accessToken) => {
         pass: 'balj ctus kuar ivbm',
       },
     });
-
     // Envoyer l'e-mail
     await transporter.sendMail({
       from: 'ons.benamorr@gmail.com',
-      to: demande.email, // Adresse e-mail de l'étudiant
+      to: demande.email,
       subject: 'Votre demande d\'hébergement a été approuvée',
       html: emailBody,
     });
 
     console.log("E-mail envoyé à l'utilisateur avec succès");
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'e-mail à l'utilisateur :", error);
+    console.error(
+      "Erreur lors de l'envoi de l'e-mail à l'utilisateur :",
+      error
+    );
   }
 };
-
 
 // Fonction utilitaire pour obtenir les chambres disponibles
 const getChambresDisponibles = async (foyerId) => {
